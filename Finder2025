@@ -1,0 +1,102 @@
+# Avvio sistema Finder 2025
+from voice_interface import ascolta_comando, rispondi
+from ble_scanner import cerca_oggetto
+import time
+
+print("[Finder 2025] Sistema avviato. Aspetto comandi vocali...")
+
+while True:
+    comando = ascolta_comando()
+    if comando:
+        print(f"Comando ricevuto: {comando}")
+        if "dove sono" in comando:
+            for oggetto in ["chiavi", "occhiali", "telecomando"]:
+                if oggetto in comando:
+                    posizione = cerca_oggetto(oggetto)
+                    rispondi(f"{oggetto.capitalize()} trovati: {posizione}")
+                    break
+        elif "esci" in comando:
+            rispondi("Arrivederci!")
+            break
+    time.sleep(1)
+
+# === voice_interface.py ===
+
+import speech_recognition as sr
+import pyttsx3
+
+recognizer = sr.Recognizer()
+voice_engine = pyttsx3.init()
+voice_engine.setProperty('rate', 150)
+
+def ascolta_comando():
+    with sr.Microphone() as source:
+        print("[Vocale] Ascolto...")
+        try:
+            audio = recognizer.listen(source, phrase_time_limit=4)
+            comando = recognizer.recognize_google(audio, language='it-IT')
+            return comando.lower()
+        except:
+            return None
+
+def rispondi(testo):
+    print(f"[Finder]: {testo}")
+    voice_engine.say(testo)
+    voice_engine.runAndWait()
+
+# === ble_scanner.py ===
+
+import random
+
+def cerca_oggetto(nome):
+    posizioni_fittizie = {
+        "chiavi": ["vicino all'ingresso", "sul tavolo del salotto"],
+        "occhiali": ["in camera da letto", "sulla scrivania"],
+        "telecomando": ["sul divano", "accanto alla TV"]
+    }
+    if nome in posizioni_fittizie:
+        return random.choice(posizioni_fittizie[nome])
+    else:
+        return "Posizione sconosciuta"
+
+# === ui/app.py ===
+
+from flask import Flask, render_template
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    oggetti = {
+        "Chiavi": "vicino all'ingresso",
+        "Occhiali": "in camera da letto",
+        "Telecomando": "sul divano"
+    }
+    return render_template('index.html', oggetti=oggetti)
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+# === ui/templates/index.html ===
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Finder 2025</title>
+</head>
+<body>
+    <h1>Finder 2025 - Oggetti Tracciati</h1>
+    <ul>
+        {% for oggetto, posizione in oggetti.items() %}
+            <li><strong>{{ oggetto }}:</strong> {{ posizione }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
+
+# === requirements.txt ===
+flask
+speechrecognition
+pyttsx3
+pyaudio
